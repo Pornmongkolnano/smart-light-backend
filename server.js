@@ -5,9 +5,11 @@ const mqtt = require('mqtt');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, 'config.env') });
 
+const PUBLIC_DIR = path.join(__dirname, 'public');
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.static(PUBLIC_DIR)); // serve frontend assets
 
 // ---------- 1) ค่า NETPIE ของคุณ ----------
 // รองรับทั้งชื่อแปรแบบ username/password และ token/secret ให้ตรงกับไฟล์ netpiestm32.txt
@@ -146,12 +148,17 @@ app.get('/status', (req, res) => {
 });
 
 // health check
-app.get('/', (req, res) => {
+app.get('/health', (req, res) => {
   res.send('Smart Light Backend is running.');
 });
 
+// serve dashboard
+app.get('/', (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
+});
+
 // ---------- 5) Start server ----------
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log('Backend server listening on port', PORT);
 });

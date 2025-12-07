@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Light Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="glow"></div>
+  <div class="wrapper">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2v3"></path>
+            <path d="M5.22 5.22l2.12 2.12"></path>
+            <path d="M2 12h3"></path>
+            <path d="M5.22 18.78l2.12-2.12"></path>
+            <path d="M12 19v3"></path>
+            <path d="M16.66 16.66l2.12 2.12"></path>
+            <path d="M19 12h3"></path>
+            <path d="M16.66 7.34l2.12-2.12"></path>
+            <circle cx="12" cy="12" r="4"></circle>
+          </svg>
+        </div>
+        <div>
+          <h1>Smart Light Dashboard</h1>
+          <small>STM32 → ESP32 → NETPIE</small>
+        </div>
+      </div>
+      <div class="controls">
+        <div class="pill offline" data-connection>
+          <span class="dot"></span>
+          <span data-status-text>กำลังรอข้อมูล</span>
+        </div>
+        <button id="refreshBtn" type="button">รีเฟรชตอนนี้</button>
+      </div>
+    </header>
+
+    <section class="panel hero">
+      <div>
+        <p class="mini-label">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 7h-9"></path>
+            <path d="M14 17H5"></path>
+            <circle cx="17" cy="17" r="3"></circle>
+            <circle cx="7" cy="7" r="3"></circle>
+          </svg>
+          สถานะล่าสุด
+        </p>
+        <h2 class="title">ติดตามอุปกรณ์แบบเรียลไทม์</h2>
+        <p>ดูโหมดการทำงาน, สถานะหลอดไฟ, ระยะวัด และเสียงรบกวนจาก STM32 ได้ทันทีผ่าน NETPIE</p>
+        <div class="meta">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="9"></circle>
+            <polyline points="12 7 12 12 15 15"></polyline>
+          </svg>
+          อัปเดตล่าสุด: <strong data-last-update>—</strong>
+        </div>
+      </div>
+      <div class="stat-badges">
+        <div class="badge pulse" id="badge-mode">
+          <h3>โหมด</h3>
+          <div class="value" data-mode>—</div>
+        </div>
+        <div class="badge" id="badge-light">
+          <h3>หลอดไฟ</h3>
+          <div class="value" data-light>—</div>
+        </div>
+        <div class="badge">
+          <h3>เสียง</h3>
+          <div class="value" data-noise>—</div>
+        </div>
+        <div class="badge">
+          <h3>สัญญาณรบกวน/แจ้งเตือน</h3>
+          <div class="value" data-intrusion>—</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <article class="panel">
+        <header>
+          <h2>Device Snapshot</h2>
+          <span class="chip" data-health>Waiting</span>
+        </header>
+        <div class="metrics">
+          <div class="metric">
+            <small>โหมด (MODE)</small>
+            <div class="metric-value" data-mode-detail>—</div>
+            <div class="sub">AUTO / MANUAL</div>
+          </div>
+          <div class="metric">
+            <small>สถานะแสง (LIGHT)</small>
+            <div class="metric-value" data-light-detail>—</div>
+            <div class="sub">On/Off จากข้อมูลล่าสุด</div>
+          </div>
+          <div class="metric">
+            <small>ระยะวัด (DIST)</small>
+            <div class="metric-value" data-distance>—</div>
+            <div class="sub">ค่าอัลตราโซนิก</div>
+          </div>
+          <div class="metric">
+            <small>แสงรอบข้าง (LDR)</small>
+            <div class="metric-value" data-ldr>—</div>
+            <div class="sub">ค่าจาก LDR</div>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel">
+        <header>
+          <h2>ข้อมูลเพิ่มเติม</h2>
+          <span class="chip warn">Live</span>
+        </header>
+        <ul class="list" data-extra-list>
+          <li class="muted">ยังไม่มีข้อมูลเพิ่มเติม</li>
+        </ul>
+      </article>
+    </section>
+  </div>
+  <script src="/js/app.js"></script>
+</body>
+</html>

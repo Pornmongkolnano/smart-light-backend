@@ -19,6 +19,7 @@ const char* NETPIE_SECRET  = "oz286XbiPeM94p582Uooxc9LRc35PWxP";       // Secret
 
 // Topic ที่จะ Publish ไป (ให้ตรงกับที่ใช้ใน MQTT Explorer)
 const char* MQTT_TOPIC_PUB   = "@msg/stm32";
+const char* MQTT_TOPIC_CMD   = "@msg/stm32/cmd"; // Topic รับคำสั่งจากเว็บ
 
 //==================== MQTT Client ====================
 WiFiClient espClient;
@@ -30,6 +31,34 @@ PubSubClient mqttClient(espClient);
 HardwareSerial stmSerial(1);   // ใช้ UART1 ของ ESP32
 
 //==================== Helper Functions ===============
+void mqttCallback(char* topic, byte* payload, unsigned int length) {
+  // แปลง payload เป็นสตริง
+  String msg;
+  msg.reserve(length + 1);
+  for (unsigned int i = 0; i < length; i++) {
+    msg += static_cast<char>(payload[i]);
+  }
+  msg.trim();
+
+  Serial.print("MQTT msg [");
+  Serial.print(topic);
+  Serial.print("] => ");
+  Serial.println(msg);
+
+  // รับเฉพาะ topic คำสั่ง แล้วส่งต่อไป STM32 ผ่าน UART6
+  if (strcmp(topic, MQTT_TOPIC_CMD) == 0 && msg.length() > 0) {
+    // ถ้าเว็บส่งมาแบบ LIGHT=ON ตรง ๆ ให้เติม CMD; ให้ STM32 เข้าใจ
+    if (!msg.startsWith("CMD;") && !msg.startsWith("cmd;")) {
+      msg = "CMD;" + msg;
+    }
+    msg.toUpperCase();
+
+    stmSerial.print(msg);
+    stmSerial.print("\n");
+    Serial.print("Forward CMD to STM32: ");
+    Serial.println(msg);
+  }
+}
 
 void connectWiFi() {
   WiFi.begin(WIFI_SSID, WIFI_PASS);
@@ -49,6 +78,7 @@ void connectMQTT() {
     // clientId, username(token), password(secret)
     if (mqttClient.connect(NETPIE_CLIENT_ID, NETPIE_TOKEN, NETPIE_SECRET)) {
       Serial.println("connected");
+      mqttClient.subscribe(MQTT_TOPIC_CMD);
       // ถ้าจะ subscribe topic อื่นเพิ่ม ก็ทำที่นี่
       // mqttClient.subscribe("@msg/xxx");
     } else {
@@ -62,35 +92,34 @@ void connectMQTT() {
 
 /**
  * แปลงสตริงจาก STM32:
- *   STATUS;MODE=AUTO;LIGHT=1;LDR=1250;DIST=225;NOISE=LOW;INTR=0
+ *   (ฟิลด์ MODE / INTR ไม่ได้ใช้งานแล้ว)
+ *   STATUS;LIGHT=1;LDR=1250;DIST=225;NOISE=LOW
  * ให้กลายเป็น JSON:
- *   {"MODE":"AUTO","LIGHT":1,"LDR":1250,"DIST":225,"NOISE":"LOW","INTR":0}
+ *   {"LIGHT":1,"LDR":1250,"DIST":225.0,"NOISE":"LOW"}
  */
 String statusToJson(const String &line) {
-  char mode[16], noise[16];
-  int  light, intr;
+  char noise[16];
+  int  light;
   unsigned int ldr;
   float dist;
 
   int matched = sscanf(
     line.c_str(),
-    "STATUS;MODE=%15[^;];LIGHT=%d;LDR=%u;DIST=%f;NOISE=%15[^;];INTR=%d",
-    mode, &light, &ldr, &dist, noise, &intr
+    "STATUS;LIGHT=%d;LDR=%u;DIST=%f;NOISE=%15[^;]",
+    &light, &ldr, &dist, noise
   );
 
-  // ถ้า parse ไม่ครบ 6 ตัว แสดงว่า format เพี้ยน → ส่ง string ดิบไปแทน
-  if (matched != 6) {
+  // ถ้า parse ไม่ครบ 4 ตัว แสดงว่า format เพี้ยน → ส่ง string ดิบไปแทน
+  if (matched != 4) {
     Serial.println("Parse failed, publish raw string");
     return "\"" + line + "\"";
   }
 
   String json = "{";
-  json += "\"MODE\":\"" + String(mode) + "\",";
   json += "\"LIGHT\":"  + String(light) + ",";
   json += "\"LDR\":"    + String(ldr)   + ",";
   json += "\"DIST\":"   + String(dist, 1) + ",";
-  json += "\"NOISE\":\""+ String(noise) + "\",";
-  json += "\"INTR\":"   + String(intr);
+  json += "\"NOISE\":\""+ String(noise) + "\"";
   json += "}";
 
   return json;
@@ -108,6 +137,7 @@ void setup() {
   // WiFi + MQTT
   connectWiFi();
   mqttClient.setServer(MQTT_SERVER, MQTT_PORT);
+  mqttClient.setCallback(mqttCallback);
   connectMQTT();
 }
 

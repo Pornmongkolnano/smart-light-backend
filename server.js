@@ -40,6 +40,7 @@ const SUB_TOPIC = '@msg/stm32';
 // ---------- 2) ตัวแปรเก็บสถานะล่าสุด ----------
 let lastStatus = null;   // เก็บ object แปลงจากข้อความ STATUS/JSON
 let lastRawMessage = ''; // เก็บข้อความดิบไว้ debug
+let lastUpdatedAt = null; // เก็บ timestamp เมื่อได้รับข้อมูลล่าสุด
 
 // ---------- 3) เชื่อม MQTT ไป NETPIE ----------
 const mqttClient = mqtt.connect(NETPIE_HOST, {
@@ -73,6 +74,7 @@ mqttClient.on('message', (topic, message) => {
   const parsed = parseIncomingPayload(msgStr);
   if (parsed) {
     lastStatus = stripLegacyFields(parsed);
+    lastUpdatedAt = Date.now();
   }
 });
 
@@ -149,13 +151,14 @@ app.get('/status', (req, res) => {
       ok: false,
       message: 'No data yet',
       raw: lastRawMessage,
+      updatedAt: lastUpdatedAt ? new Date(lastUpdatedAt).toISOString() : null,
     });
   }
   res.json({
     ok: true,
     data: lastStatus,
     raw: lastRawMessage,
-    updatedAt: new Date().toISOString(),
+    updatedAt: lastUpdatedAt ? new Date(lastUpdatedAt).toISOString() : null,
   });
 });
 

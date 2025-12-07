@@ -37,90 +37,110 @@
           <span class="dot"></span>
           <span data-status-text>กำลังรอข้อมูล</span>
         </div>
-        <button id="refreshBtn" type="button">รีเฟรชตอนนี้</button>
+        <button id="refreshBtn" type="button">รีเฟรช</button>
       </div>
     </header>
 
-    <section class="panel hero">
-      <div>
-        <p class="mini-label">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M20 7h-9"></path>
-            <path d="M14 17H5"></path>
-            <circle cx="17" cy="17" r="3"></circle>
-            <circle cx="7" cy="7" r="3"></circle>
-          </svg>
-          สถานะล่าสุด
-        </p>
-        <h2 class="title">ติดตามอุปกรณ์แบบเรียลไทม์</h2>
-        <p>ดูสถานะหลอดไฟ, แสงรอบข้าง, ระยะวัด และเสียงรบกวนจาก STM32 ได้ทันทีผ่าน NETPIE</p>
-        <div class="meta">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="9"></circle>
-            <polyline points="12 7 12 12 15 15"></polyline>
-          </svg>
-          อัปเดตล่าสุด: <strong data-last-update>—</strong>
+    <section class="panel overview">
+      <div class="overview-head">
+        <div>
+          <p class="mini-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 18h6"></path>
+              <path d="M10 22h4"></path>
+              <path d="M8 14a4 4 0 1 1 8 0v2H8z"></path>
+            </svg>
+            สถานะล่าสุด
+          </p>
+          <h2 class="title">ข้อมูลย่อจาก STM32</h2>
+          <p class="lead">ลดความซ้ำซ้อน แสดงเฉพาะค่าหลักที่ส่งผ่าน NETPIE</p>
+        </div>
+        <div class="overview-meta">
+          <span class="chip warn" data-health>Waiting</span>
         </div>
       </div>
-      <div class="stat-badges">
-        <div class="badge pulse">
-          <h3>หลอดไฟ (LIGHT)</h3>
-          <div class="value" data-light>—</div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-head">
+            <span class="label">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 18h6"></path>
+                <path d="M10 22h4"></path>
+                <path d="M8 14a4 4 0 1 1 8 0v2H8z"></path>
+              </svg>
+              หลอดไฟ
+            </span>
+            <span class="code">LIGHT</span>
+          </div>
+          <div class="stat-value" data-light>—</div>
+          <div class="stat-sub">สถานะหลอดไฟล่าสุด</div>
         </div>
-        <div class="badge">
-          <h3>แสงรอบข้าง (LDR)</h3>
-          <div class="value" data-ldr>—</div>
+        <div class="stat-card">
+          <div class="stat-head">
+            <span class="label">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 3v18"></path>
+                <path d="m17 9-5-6-5 6"></path>
+                <path d="m7 15 5 6 5-6"></path>
+              </svg>
+              แสงรอบข้าง
+            </span>
+            <span class="code">LDR</span>
+          </div>
+          <div class="stat-value" data-ldr>—</div>
+          <div class="stat-sub">ค่าจากเซนเซอร์แสง</div>
         </div>
-        <div class="badge">
-          <h3>ระยะวัด (DIST)</h3>
-          <div class="value" data-distance>—</div>
+        <div class="stat-card">
+          <div class="stat-head">
+            <span class="label">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 12h18"></path>
+                <path d="M7 8h1v8H7z"></path>
+                <path d="M16 8h1v8h-1z"></path>
+              </svg>
+              ระยะวัด
+            </span>
+            <span class="code">DIST</span>
+          </div>
+          <div class="stat-value" data-distance>—</div>
+          <div class="stat-sub">หน่วยเซนติเมตร</div>
         </div>
-        <div class="badge">
-          <h3>เสียงรบกวน (NOISE)</h3>
-          <div class="value" data-noise>—</div>
+        <div class="stat-card">
+          <div class="stat-head">
+            <span class="label">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 10v3"></path>
+                <path d="M7 6v11"></path>
+                <path d="M11 3v18"></path>
+                <path d="M15 8v9"></path>
+                <path d="M19 5v14"></path>
+              </svg>
+              เสียงรบกวน
+            </span>
+            <span class="code">NOISE</span>
+          </div>
+          <div class="stat-value" data-noise>—</div>
+          <div class="stat-sub">ค่าความดังล่าสุด</div>
+        </div>
+      </div>
+
+      <div class="summary-row">
+        <div>
+          <p class="muted">สรุปย่อ</p>
+          <div class="summary-text" data-quick-summary>รอข้อมูลจากอุปกรณ์...</div>
         </div>
       </div>
     </section>
 
-    <section class="grid">
-      <article class="panel">
-        <header>
-          <h2>Device Snapshot</h2>
-          <span class="chip" data-health>Waiting</span>
-        </header>
-        <div class="metrics">
-          <div class="metric">
-            <small>สถานะแสง (LIGHT)</small>
-            <div class="metric-value" data-light-detail>—</div>
-            <div class="sub">On/Off จากข้อมูลล่าสุด</div>
-          </div>
-          <div class="metric">
-            <small>แสงรอบข้าง (LDR)</small>
-            <div class="metric-value" data-ldr-detail>—</div>
-            <div class="sub">ค่าจาก LDR</div>
-          </div>
-          <div class="metric">
-            <small>ระยะวัด (DIST)</small>
-            <div class="metric-value" data-distance-detail>—</div>
-            <div class="sub">หน่วยเซนติเมตร</div>
-          </div>
-          <div class="metric">
-            <small>เสียงรบกวน (NOISE)</small>
-            <div class="metric-value" data-noise-detail>—</div>
-            <div class="sub">ค่าความดังล่าสุด</div>
-          </div>
-        </div>
-      </article>
-
-      <article class="panel">
-        <header>
-          <h2>ข้อมูลเพิ่มเติม</h2>
-          <span class="chip warn">Live</span>
-        </header>
-        <ul class="list" data-extra-list>
-          <li class="muted">ยังไม่มีข้อมูลเพิ่มเติม</li>
-        </ul>
-      </article>
+    <section class="panel">
+      <header>
+        <h2>ข้อมูลเพิ่มเติม</h2>
+        <span class="muted small">ข้อมูลอื่นๆ ที่ส่งมาพร้อมกัน</span>
+      </header>
+      <ul class="list" data-extra-list>
+        <li class="muted">ยังไม่มีข้อมูลเพิ่มเติม</li>
+      </ul>
     </section>
   </div>
   <script src="/js/app.js"></script>

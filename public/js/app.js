@@ -1,29 +1,26 @@
 (function () {
   const state = { timer: null };
+  const STALE_MS = 12000;
   const refs = {
     statusText: document.querySelector('[data-status-text]'),
     connection: document.querySelector('[data-connection]'),
     health: document.querySelector('[data-health]'),
-    lastUpdate: document.querySelector('[data-last-update]'),
     light: document.querySelector('[data-light]'),
     ldr: document.querySelector('[data-ldr]'),
     noise: document.querySelector('[data-noise]'),
     distance: document.querySelector('[data-distance]'),
-    lightDetail: document.querySelector('[data-light-detail]'),
-    ldrDetail: document.querySelector('[data-ldr-detail]'),
-    noiseDetail: document.querySelector('[data-noise-detail]'),
-    distanceDetail: document.querySelector('[data-distance-detail]'),
     extraList: document.querySelector('[data-extra-list]'),
+    summaryText: document.querySelector('[data-quick-summary]'),
     refreshBtn: document.getElementById('refreshBtn'),
   };
 
   const primaryFields = ['LIGHT', 'LDR', 'DIST', 'NOISE'];
 
-  function setBadge(status) {
+  function setBadge(status, message) {
     const classList = refs.connection.classList;
     classList.remove('online', 'offline');
     classList.add(status ? 'online' : 'offline');
-    refs.statusText.textContent = status ? 'รับข้อมูลจาก NETPIE แล้ว' : 'กำลังรอข้อมูล';
+    refs.statusText.textContent = message || (status ? 'รับข้อมูลจาก NETPIE แล้ว' : 'กำลังรอข้อมูล');
   }
 
   function formatLight(val) {
@@ -42,7 +39,9 @@
 
   function formatLdr(val) {
     if (val === undefined || val === null || val === '') return '—';
-    return Number(val);
+    const num = Number(val);
+    if (Number.isNaN(num)) return String(val);
+    return num;
   }
 
   function formatNoise(val) {
@@ -52,24 +51,11 @@
     return String(val);
   }
 
-  function relativeTime(date) {
-    const diff = Date.now() - date.getTime();
-    if (diff < 0) return 'เพิ่งอัปเดต';
-    const seconds = Math.floor(diff / 1000);
-    if (seconds < 60) return seconds + ' วินาทีที่แล้ว';
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return minutes + ' นาทีที่แล้ว';
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return hours + ' ชั่วโมงที่แล้ว';
-    const days = Math.floor(hours / 24);
-    return days + ' วันที่แล้ว';
-  }
-
   function updateExtras(data) {
     refs.extraList.innerHTML = '';
     const entries = Object.entries(data || {}).filter(([key]) => !primaryFields.includes(key));
     if (!entries.length) {
-      refs.extraList.innerHTML = '<li class="muted">ยังไม่มีข้อมูลอื่นเพิ่มเติม</li>';
+      refs.extraList.innerHTML = '<li class="muted">ยังไม่มีข้อมูลเพิ่มเติม</li>';
       return;
     }
     entries.forEach(([key, value]) => {
@@ -85,16 +71,40 @@
     });
   }
 
+  function buildSummary(light, ldr, distance, noise, dataStatus) {
+    const parts = [];
+    if (light !== '—') parts.push('หลอดไฟ ' + light);
+    if (ldr !== '—') parts.push('แสง ' + ldr);
+    if (distance !== '—') parts.push('ระยะ ' + distance);
+    if (noise !== '—') parts.push('เสียง ' + noise);
+    if (!dataStatus) {
+      return parts.length ? parts.join(' • ') : 'รอข้อมูลจากอุปกรณ์...';
+    }
+    if (!parts.length) return dataStatus;
+    return parts.join(' • ') + ' • ' + dataStatus;
+  }
+
   function render(payload) {
     const ok = payload && payload.ok && payload.data;
-    setBadge(Boolean(ok));
+    const updatedAt = ok && payload.updatedAt ? new Date(payload.updatedAt) : null;
+    const ageMs = updatedAt ? Date.now() - updatedAt.getTime() : Infinity;
+    const ageSec = Number.isFinite(ageMs) ? Math.floor(ageMs / 1000) : null;
+    const isFresh = ok && ageMs < STALE_MS;
 
-    refs.health.textContent = ok ? 'Live' : 'Waiting';
-    refs.health.className = 'chip ' + (ok ? 'good' : 'warn');
+    const statusMessage = !ok
+      ? 'กำลังรอข้อมูล'
+      : isFresh
+        ? 'รับข้อมูลจาก NETPIE แล้ว'
+        : ageSec !== null
+          ? `ข้อมูลไม่อัปเดตเกิน ${ageSec} วินาที`
+          : 'ข้อมูลยังไม่อัปเดต';
+
+    setBadge(isFresh, statusMessage);
+
+    refs.health.textContent = !ok ? 'Waiting' : isFresh ? 'Live' : 'Stale';
+    refs.health.className = 'chip ' + (!ok ? 'warn' : isFresh ? 'good' : 'warn');
 
     const data = ok ? payload.data : {};
-    const updated = ok && payload.updatedAt ? new Date(payload.updatedAt) : null;
-    refs.lastUpdate.textContent = updated ? relativeTime(updated) : 'ยังไม่เคยได้รับข้อมูล';
 
     const light = formatLight(data.LIGHT);
     const ldr = formatLdr(data.LDR);
@@ -102,13 +112,14 @@
     const noise = formatNoise(data.NOISE);
 
     refs.light.textContent = light;
-    refs.lightDetail.textContent = light;
     refs.ldr.textContent = ldr;
-    refs.ldrDetail.textContent = ldr;
     refs.distance.textContent = distance;
-    refs.distanceDetail.textContent = distance;
     refs.noise.textContent = noise;
-    refs.noiseDetail.textContent = noise;
+
+    if (refs.summaryText) {
+      const dataStatus = !ok ? 'รอข้อมูล' : isFresh ? 'ข้อมูลกำลังอัปเดต' : 'ข้อมูลหยุดอัปเดต';
+      refs.summaryText.textContent = buildSummary(light, ldr, distance, noise, dataStatus);
+    }
 
     updateExtras(data);
   }
@@ -126,11 +137,11 @@
     } catch (err) {
       refs.health.textContent = 'Disconnected';
       refs.health.className = 'chip bad';
-      refs.statusText.textContent = 'เชื่อมต่อไม่ได้';
+      setBadge(false, 'เชื่อมต่อไม่ได้');
     } finally {
       if (manual) {
         refs.refreshBtn.disabled = false;
-        refs.refreshBtn.textContent = 'รีเฟรชตอนนี้';
+        refs.refreshBtn.textContent = 'รีเฟรช';
       }
     }
   }

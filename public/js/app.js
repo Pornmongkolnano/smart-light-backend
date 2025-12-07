@@ -5,19 +5,19 @@
     connection: document.querySelector('[data-connection]'),
     health: document.querySelector('[data-health]'),
     lastUpdate: document.querySelector('[data-last-update]'),
-    mode: document.querySelector('[data-mode]'),
     light: document.querySelector('[data-light]'),
-    noise: document.querySelector('[data-noise]'),
-    intrusion: document.querySelector('[data-intrusion]'),
-    modeDetail: document.querySelector('[data-mode-detail]'),
-    lightDetail: document.querySelector('[data-light-detail]'),
-    distance: document.querySelector('[data-distance]'),
     ldr: document.querySelector('[data-ldr]'),
+    noise: document.querySelector('[data-noise]'),
+    distance: document.querySelector('[data-distance]'),
+    lightDetail: document.querySelector('[data-light-detail]'),
+    ldrDetail: document.querySelector('[data-ldr-detail]'),
+    noiseDetail: document.querySelector('[data-noise-detail]'),
+    distanceDetail: document.querySelector('[data-distance-detail]'),
     extraList: document.querySelector('[data-extra-list]'),
     refreshBtn: document.getElementById('refreshBtn'),
   };
 
-  const primaryFields = ['MODE', 'LIGHT', 'LDR', 'DIST', 'NOISE', 'INTR'];
+  const primaryFields = ['LIGHT', 'LDR', 'DIST', 'NOISE'];
 
   function setBadge(status) {
     const classList = refs.connection.classList;
@@ -45,9 +45,11 @@
     return Number(val);
   }
 
-  function formatIntrusion(val) {
-    if (val === undefined || val === null) return '—';
-    return Number(val) === 1 ? 'มีการแจ้งเตือน' : 'ปกติ';
+  function formatNoise(val) {
+    if (val === undefined || val === null || val === '') return '—';
+    const num = Number(val);
+    if (!Number.isNaN(num)) return num;
+    return String(val);
   }
 
   function relativeTime(date) {
@@ -94,19 +96,19 @@
     const updated = ok && payload.updatedAt ? new Date(payload.updatedAt) : null;
     refs.lastUpdate.textContent = updated ? relativeTime(updated) : 'ยังไม่เคยได้รับข้อมูล';
 
-    const mode = data.MODE || '—';
     const light = formatLight(data.LIGHT);
-    const noise = data.NOISE || '—';
-    const intrusion = formatIntrusion(data.INTR);
+    const ldr = formatLdr(data.LDR);
+    const distance = formatDistance(data.DIST);
+    const noise = formatNoise(data.NOISE);
 
-    refs.mode.textContent = mode;
-    refs.modeDetail.textContent = mode;
     refs.light.textContent = light;
     refs.lightDetail.textContent = light;
+    refs.ldr.textContent = ldr;
+    refs.ldrDetail.textContent = ldr;
+    refs.distance.textContent = distance;
+    refs.distanceDetail.textContent = distance;
     refs.noise.textContent = noise;
-    refs.intrusion.textContent = intrusion;
-    refs.distance.textContent = formatDistance(data.DIST);
-    refs.ldr.textContent = formatLdr(data.LDR);
+    refs.noiseDetail.textContent = noise;
 
     updateExtras(data);
   }

@@ -72,7 +72,7 @@ mqttClient.on('message', (topic, message) => {
 
   const parsed = parseIncomingPayload(msgStr);
   if (parsed) {
-    lastStatus = parsed;
+    lastStatus = stripLegacyFields(parsed);
   }
 });
 
@@ -103,6 +103,18 @@ function parseIncomingPayload(payload) {
   }
 
   return null;
+}
+
+// ตัดฟิลด์เก่า (MODE/INTR) ที่เลิกใช้งานออกจาก payload
+function stripLegacyFields(payload) {
+  if (!payload || typeof payload !== 'object') return payload;
+  const sanitized = { ...payload };
+  ['MODE', 'mode', 'INTR', 'intr'].forEach((key) => {
+    if (key in sanitized) {
+      delete sanitized[key];
+    }
+  });
+  return sanitized;
 }
 
 // ฟังก์ชันแปลง "STATUS;KEY=VAL;KEY=VAL" → object

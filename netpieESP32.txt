@@ -1,0 +1,139 @@
+#include <WiFi.h>
+#include <PubSubClient.h>
+#include <HardwareSerial.h>
+
+
+
+// ===== WiFi =====
+const char* WIFI_SSID = "BESTWIFI  2.4G";
+const char* WIFI_PASS = "00812345";
+
+// ===== NETPIE MQTT =====
+const char* MQTT_SERVER     = "mqtt.netpie.io";
+const int   MQTT_PORT     = 1883;
+
+// ใช้ ClientID / Token / Secret จาก Device “B” ใน NETPIE
+const char* NETPIE_CLIENT_ID = "461806bc-f235-4670-93c4-cb33577639f8";   // Client ID
+const char* NETPIE_TOKEN  = "ufYvNyt3CvVPjANSJqLkkyLe7mCgua2R";       // Token
+const char* NETPIE_SECRET  = "oz286XbiPeM94p582Uooxc9LRc35PWxP";       // Secret
+
+// Topic ที่จะ Publish ไป (ให้ตรงกับที่ใช้ใน MQTT Explorer)
+const char* MQTT_TOPIC_PUB   = "@msg/stm32";
+
+//==================== MQTT Client ====================
+WiFiClient espClient;
+PubSubClient mqttClient(espClient);
+
+//==================== UART กับ STM32 =================
+#define STM_RX_PIN 18   // ESP32 RX  ต่อกับ STM32 TX (PA9)
+#define STM_TX_PIN 17   // ESP32 TX  ต่อกับ STM32 RX (PA10)
+HardwareSerial stmSerial(1);   // ใช้ UART1 ของ ESP32
+
+//==================== Helper Functions ===============
+
+void connectWiFi() {
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  Serial.print("Connecting WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println();
+  Serial.print("WiFi connected. IP = ");
+  Serial.println(WiFi.localIP());
+}
+
+void connectMQTT() {
+  while (!mqttClient.connected()) {
+    Serial.print("Connecting NETPIE...");
+    // clientId, username(token), password(secret)
+    if (mqttClient.connect(NETPIE_CLIENT_ID, NETPIE_TOKEN, NETPIE_SECRET)) {
+      Serial.println("connected");
+      // ถ้าจะ subscribe topic อื่นเพิ่ม ก็ทำที่นี่
+      // mqttClient.subscribe("@msg/xxx");
+    } else {
+      Serial.print("failed, rc=");
+      Serial.println(mqttClient.state());
+      Serial.println("Retry in 2 seconds...");
+      delay(2000);
+    }
+  }
+}
+
+/**
+ * แปลงสตริงจาก STM32:
+ *   STATUS;MODE=AUTO;LIGHT=1;LDR=1250;DIST=225;NOISE=LOW;INTR=0
+ * ให้กลายเป็น JSON:
+ *   {"MODE":"AUTO","LIGHT":1,"LDR":1250,"DIST":225,"NOISE":"LOW","INTR":0}
+ */
+String statusToJson(const String &line) {
+  char mode[16], noise[16];
+  int  light, intr;
+  unsigned int ldr;
+  float dist;
+
+  int matched = sscanf(
+    line.c_str(),
+    "STATUS;MODE=%15[^;];LIGHT=%d;LDR=%u;DIST=%f;NOISE=%15[^;];INTR=%d",
+    mode, &light, &ldr, &dist, noise, &intr
+  );
+
+  // ถ้า parse ไม่ครบ 6 ตัว แสดงว่า format เพี้ยน → ส่ง string ดิบไปแทน
+  if (matched != 6) {
+    Serial.println("Parse failed, publish raw string");
+    return "\"" + line + "\"";
+  }
+
+  String json = "{";
+  json += "\"MODE\":\"" + String(mode) + "\",";
+  json += "\"LIGHT\":"  + String(light) + ",";
+  json += "\"LDR\":"    + String(ldr)   + ",";
+  json += "\"DIST\":"   + String(dist, 1) + ",";
+  json += "\"NOISE\":\""+ String(noise) + "\",";
+  json += "\"INTR\":"   + String(intr);
+  json += "}";
+
+  return json;
+}
+
+//==================== Arduino Setup ==================
+void setup() {
+  Serial.begin(115200);
+  delay(1000);
+
+  // UART ไป STM32
+  stmSerial.begin(115200, SERIAL_8N1, STM_RX_PIN, STM_TX_PIN);
+  Serial.println("ESP32 ready, waiting for STM32...");
+
+  // WiFi + MQTT
+  connectWiFi();
+  mqttClient.setServer(MQTT_SERVER, MQTT_PORT);
+  connectMQTT();
+}
+
+//==================== Arduino Loop ===================
+void loop() {
+  // ดูแลการเชื่อมต่อ MQTT
+  if (!mqttClient.connected()) {
+    connectMQTT();
+  }
+  mqttClient.loop();
+
+  // ถ้ามีข้อมูลจาก STM32 ทาง UART
+  if (stmSerial.available()) {
+    String line = stmSerial.readStringUntil('\n');
+    line.trim();          // ตัด \r \n และช่องว่างท้ายข้อความออก
+
+    if (line.length() == 0) return;
+
+    Serial.print("From STM32: ");
+    Serial.println(line);
+
+    String json = statusToJson(line);
+
+    Serial.print("Publish JSON: ");
+    Serial.println(json);
+
+    mqttClient.publish(MQTT_TOPIC_PUB, json.c_str());
+  }
+}
